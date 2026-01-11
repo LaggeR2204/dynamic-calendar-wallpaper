@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
 import React from "react";
-import moment from "moment-timezone";
+import moment, { Moment } from "moment-timezone";
 
 const CALENDAR_WIDTH = 3024;
 const CALENDAR_HEIGHT = 1964;
+const TZ = "Asia/Ho_Chi_Minh";
 
 type DayType = number | null;
 type WeekType = DayType[];
@@ -21,11 +22,11 @@ interface MonthData {
 }
 
 function getCalendarData(year: number, month: number): CalendarData {
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth: number = lastDay.getDate();
-  const startingDayOfWeek: number = firstDay.getDay();
-  const adjustedStartDay: number = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+  const firstDay = moment.tz([year, month, 1], TZ);
+  const lastDay = firstDay.clone().endOf("month");
+  const daysInMonth: number = lastDay.date();
+  const startingDayOfWeekRaw: number = firstDay.day(); // 0 (Sun) - 6 (Sat)
+  const adjustedStartDay: number = startingDayOfWeekRaw === 0 ? 6 : startingDayOfWeekRaw - 1;
 
   const monthNames: string[] = [
     "Jan",
@@ -49,7 +50,7 @@ function getCalendarData(year: number, month: number): CalendarData {
   };
 }
 
-function renderMonth(now: Date, year: number, month: number): MonthData {
+function renderMonth(now: Moment, year: number, month: number): MonthData {
   const { monthName, daysInMonth, startingDayOfWeek } = getCalendarData(year, month);
   const weeks: WeekType[] = [];
   let week: WeekType = [];
@@ -73,9 +74,9 @@ function renderMonth(now: Date, year: number, month: number): MonthData {
     weeks.push(week);
   }
 
-  const today: number = now.getDate();
-  const currentMonth: number = now.getMonth();
-  const currentYear: number = now.getFullYear();
+  const today: number = now.date();
+  const currentMonth: number = now.month();
+  const currentYear: number = now.year();
   const isCurrentMonth: boolean = month === currentMonth && year === currentYear;
 
   return {
@@ -91,8 +92,8 @@ function getDotColor(day: number, today: number | null): string {
   return "#555";
 }
 
-export function CalendarImage({ now }: { now: Date }): React.ReactElement {
-  const currentYear: number = now.getFullYear();
+export function CalendarImage({ now }: { now: Moment }): React.ReactElement {
+  const currentYear: number = now.year();
   const months: number[] = Array.from({ length: 12 }, (_, i) => i);
   const rows: number[][] = [
     months.slice(0, 4),
@@ -197,8 +198,8 @@ export function CalendarImage({ now }: { now: Date }): React.ReactElement {
   });
 
   return React.createElement(
-      "div",
-      {
+    "div",
+    {
       style: {
         width: CALENDAR_WIDTH,
         height: CALENDAR_HEIGHT,
@@ -211,23 +212,24 @@ export function CalendarImage({ now }: { now: Date }): React.ReactElement {
         paddingBottom: CALENDAR_HEIGHT * 0.1,
       },
     },
-      React.createElement(
-        "div",
-        {
-          style: {
-            display: "flex",
-            flexDirection: "column",
-            gap: 40,
-          },
+    React.createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 40,
         },
-        ...monthRows
-      )
-    );
+      },
+      ...monthRows
+    )
+  );
 }
 
 export async function GET() {
   // Get current time in Vietnam (ICT - Indochina Time, UTC+7)
-  const now = moment().tz('Asia/Ho_Chi_Minh').toDate();
+  const now = moment().tz(TZ);
+  console.log("Generating calendar image for date:", now.format());
 
   return new ImageResponse(React.createElement(CalendarImage, { now }), {
     width: CALENDAR_WIDTH,
