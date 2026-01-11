@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import React from "react";
+import moment from "moment-timezone";
 
 const CALENDAR_WIDTH = 3024;
 const CALENDAR_HEIGHT = 1964;
@@ -225,7 +226,8 @@ export function CalendarImage({ now }: { now: Date }): React.ReactElement {
 }
 
 export async function GET() {
-  const now = new Date();
+  // Get current time in Vietnam (ICT - Indochina Time, UTC+7)
+  const now = moment().tz('Asia/Ho_Chi_Minh').toDate();
 
   return new ImageResponse(React.createElement(CalendarImage, { now }), {
     width: CALENDAR_WIDTH,
